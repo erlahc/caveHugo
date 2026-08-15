@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import pixGif from "./pix_gif.gif";
 
 // Code d'accès : défini via la variable d'environnement VITE_APP_CODE
 // (Netlify > Site configuration > Environment variables). Valeur de repli si absente.
@@ -84,6 +85,9 @@ export default function CodeGate({ children }) {
         .gate-key:active { background: #f3e8d3; transform: scale(0.96); }
       `}</style>
 
+      <div style={styles.bg} aria-hidden="true" />
+      <div style={styles.scrim} aria-hidden="true" />
+
       <div style={styles.card}>
         <p style={styles.eyebrow}>Cave Saint-Terre</p>
         <h1 style={styles.title}>Accès protégé</h1>
@@ -131,6 +135,7 @@ export default function CodeGate({ children }) {
 
 const styles = {
   page: {
+    position: "relative",
     minHeight: "100vh",
     background: "#f6efe2",
     fontFamily: "'Inter', sans-serif",
@@ -139,16 +144,38 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
+    overflow: "hidden",
+  },
+  // Fond animé : le GIF boucle indéfiniment (loop count = 0 dans le fichier)
+  bg: {
+    position: "fixed",
+    inset: 0,
+    backgroundImage: `url(${pixGif})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    zIndex: 0,
+  },
+  // Voile pour garder le pavé numérique lisible par-dessus le GIF
+  scrim: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(43,26,20,0.45)",
+    zIndex: 0,
   },
   card: {
-    background: "#fffaf1",
+    position: "relative",
+    zIndex: 1,
+    background: "rgba(255,250,241,0.94)",
+    backdropFilter: "blur(6px)",
+    WebkitBackdropFilter: "blur(6px)",
     border: "1px solid #e4d5b8",
     borderRadius: 16,
     padding: "32px 28px 28px",
     width: "100%",
     maxWidth: 340,
     textAlign: "center",
-    boxShadow: "0 24px 60px rgba(43,26,20,0.12)",
+    boxShadow: "0 24px 60px rgba(43,26,20,0.35)",
   },
   eyebrow: { margin: 0, fontSize: 12, letterSpacing: "0.12em", textTransform: "uppercase", color: "#a3401f", fontWeight: 600 },
   title: { margin: "6px 0 0", fontFamily: "'Fraunces', serif", fontSize: "1.6rem", fontWeight: 700, color: "#3b2415" },
