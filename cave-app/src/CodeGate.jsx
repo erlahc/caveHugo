@@ -4,30 +4,36 @@ import pixGif from "./pix_gif.gif";
 // Code d'accès : défini via la variable d'environnement VITE_APP_CODE
 // (Netlify > Site configuration > Environment variables). Valeur de repli si absente.
 const CODE = String(import.meta.env.VITE_APP_CODE || "1234");
-const STORAGE_KEY = "cave-saint-terre-unlocked";
+// Ancienne clé de persistance : nettoyée au chargement, le code est désormais
+// redemandé à chaque ouverture de l'appli, y compris sur un appareil connu.
+const LEGACY_STORAGE_KEY = "cave-saint-terre-unlocked";
+
+const FADE_MS = 600;
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "←"];
 
 // Reverrouille l'appli (appelé depuis le bouton "Verrouiller" de la barre d'outils)
 export function lockApp() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    /* rien à nettoyer */
-  }
   window.location.reload();
 }
 
 export default function CodeGate({ children }) {
-  const [unlocked, setUnlocked] = useState(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY) === CODE;
-    } catch {
-      return false;
-    }
-  });
+  const [unlocked, setUnlocked] = useState(false);
+  // Le GIF tourne en boucle tant que le pavé n'est pas ouvert (bouton "Unlock")
+  const [padOpen, setPadOpen] = useState(false);
   const [digits, setDigits] = useState("");
   const [error, setError] = useState(false);
+
+  // Purge l'éventuel déverrouillage mémorisé par une version précédente
+  useEffect(() => {
+    try {
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {
+      /* rien à nettoyer */
+    }
+  }, []);
+
+  const openPad = useCallback(() => setPadOpen(true), []);
 
   const push = useCallback((d) => {
     setError(false);
@@ -43,11 +49,6 @@ export default function CodeGate({ children }) {
   useEffect(() => {
     if (digits.length < 4) return;
     if (digits === CODE) {
-      try {
-        localStorage.setItem(STORAGE_KEY, CODE);
-      } catch {
-        /* mode privé : on déverrouille quand même pour la session */
-      }
       setUnlocked(true);
     } else {
       setError(true);
@@ -56,16 +57,20 @@ export default function CodeGate({ children }) {
     }
   }, [digits]);
 
-  // Saisie au clavier (desktop)
+  // Saisie au clavier (desktop) : taper un chiffre ouvre aussi le pavé
   useEffect(() => {
     if (unlocked) return;
     function onKeyDown(e) {
-      if (/^[0-9]$/.test(e.key)) push(e.key);
-      else if (e.key === "Backspace") back();
+      if (/^[0-9]$/.test(e.key)) {
+        openPad();
+        push(e.key);
+      } else if (e.key === "Backspace" && padOpen) {
+        back();
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [unlocked, push, back]);
+  }, [unlocked, padOpen, push, back, openPad]);
 
   if (unlocked) return children;
 
@@ -83,12 +88,40 @@ export default function CodeGate({ children }) {
         }
         .gate-shake { animation: shake 0.4s ease; }
         .gate-key:active { background: #f3e8d3; transform: scale(0.96); }
+        .gate-unlock:hover { background: rgba(255,250,241,0.98); }
+        .gate-unlock:active { transform: scale(0.96); }
       `}</style>
 
+      {/* Le GIF tourne en boucle indéfiniment (loop count = 0 dans le fichier) */}
       <div style={styles.bg} aria-hidden="true" />
-      <div style={styles.scrim} aria-hidden="true" />
+      <div
+        style={{ ...styles.scrim, opacity: padOpen ? 1 : 0 }}
+        aria-hidden="true"
+      />
 
-      <div style={styles.card}>
+      <button
+        type="button"
+        className="gate-unlock"
+        style={{
+          ...styles.unlock,
+          opacity: padOpen ? 0 : 1,
+          pointerEvents: padOpen ? "none" : "auto",
+        }}
+        onClick={openPad}
+        aria-hidden={padOpen}
+        tabIndex={padOpen ? -1 : 0}
+      >
+        Unlock
+      </button>
+
+      <div
+        style={{
+          ...styles.card,
+          opacity: padOpen ? 1 : 0,
+          transform: padOpen ? "translateY(0)" : "translateY(12px)",
+          pointerEvents: padOpen ? "auto" : "none",
+        }}
+      >
         <p style={styles.eyebrow}>Cave Saint-Terre</p>
         <h1 style={styles.title}>Accès protégé</h1>
         <p style={styles.subtitle}>Entre le code à 4 chiffres pour ouvrir la cave.</p>
@@ -157,15 +190,39 @@ const styles = {
     zIndex: 0,
   },
   // Voile pour garder le pavé numérique lisible par-dessus le GIF
+  // (transparent pendant l'intro pour laisser le GIF s'afficher tel quel)
   scrim: {
     position: "fixed",
     inset: 0,
     background: "rgba(43,26,20,0.45)",
     zIndex: 0,
+    transition: `opacity ${FADE_MS}ms ease`,
+  },
+  // Bouton flottant en haut à droite, seul élément visible par-dessus le GIF
+  unlock: {
+    position: "fixed",
+    top: "max(20px, env(safe-area-inset-top))",
+    right: "max(20px, env(safe-area-inset-right))",
+    zIndex: 2,
+    background: "rgba(255,250,241,0.92)",
+    backdropFilter: "blur(6px)",
+    WebkitBackdropFilter: "blur(6px)",
+    border: "1px solid #e4d5b8",
+    borderRadius: 999,
+    padding: "11px 22px",
+    fontFamily: "'Fraunces', serif",
+    fontSize: "0.95rem",
+    fontWeight: 600,
+    letterSpacing: "0.02em",
+    color: "#3b2415",
+    cursor: "pointer",
+    boxShadow: "0 10px 30px rgba(43,26,20,0.35)",
+    transition: `opacity ${FADE_MS}ms ease, transform 0.08s, background 0.12s`,
   },
   card: {
     position: "relative",
     zIndex: 1,
+    transition: `opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease`,
     background: "rgba(255,250,241,0.94)",
     backdropFilter: "blur(6px)",
     WebkitBackdropFilter: "blur(6px)",
