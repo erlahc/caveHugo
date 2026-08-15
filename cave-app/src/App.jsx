@@ -1,6 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { supabase } from "./supabaseClient";
-import { lockApp } from "./CodeGate";
 
 const COULEURS = ["Rouge", "Blanc", "Rosé", "Effervescent"];
 const SEAL_COLOR = { Rouge: "#6b1424", Blanc: "#c8a84b", "Rosé": "#d98a8f", Effervescent: "#c9b878" };
@@ -251,6 +250,13 @@ export default function CaveApp() {
         * { box-sizing: border-box; }
         input, select { font-family: 'Inter', sans-serif; }
         ::placeholder { color: #9c8b7a; }
+
+        .card-view { display: none; }
+
+        @media (max-width: 720px) {
+          .table-view { display: none; }
+          .card-view { display: flex; }
+        }
       `}</style>
 
       <header style={styles.header}>
@@ -295,85 +301,134 @@ export default function CaveApp() {
         <button style={styles.btnPrimary} onClick={openAdd}>
           + Ajouter une bouteille
         </button>
-        <button style={styles.btnLock} onClick={lockApp} title="Verrouiller la cave">
-          🔒
-        </button>
       </div>
 
-      <div style={styles.tableWrap}>
-        {loading ? (
-          <p style={{ padding: 24, color: "#8a7660" }}>Chargement de la cave…</p>
-        ) : (
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}></th>
-                <th style={styles.th}>Bouteille</th>
-                <th style={styles.th}>Appellation</th>
-                <th style={styles.th}>Millésime</th>
-                <th style={styles.th}>Région</th>
-                <th style={{ ...styles.th, textAlign: "center" }}>Qté</th>
-                <th style={{ ...styles.th, textAlign: "center" }}>Wine-Searcher</th>
-                <th style={styles.th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((b) => {
-                const wsUrl = b.wineSearcherUrl || buildWineSearcherUrl(b);
-                return (
-                  <tr key={b.id} style={styles.tr}>
-                    <td style={styles.td}>
-                      <span style={{ ...styles.seal, background: SEAL_COLOR[b.couleur] || "#999" }} title={b.couleur} />
-                    </td>
-                    <td style={{ ...styles.td, fontFamily: "'Fraunces', serif", fontWeight: 600, color: "#2b1a14" }}>
-                      {bottleLabel(b)}
-                    </td>
-                    <td style={styles.td}>{b.appellation || "—"}</td>
-                    <td style={styles.td}>{b.millesime || "—"}</td>
-                    <td style={styles.td}>{b.region || "—"}</td>
-                    <td style={{ ...styles.td, textAlign: "center" }}>{b.quantite}</td>
-                    <td style={{ ...styles.td, textAlign: "center" }}>
-                      {wsUrl ? (
-                        <a href={wsUrl} target="_blank" rel="noopener noreferrer" style={styles.wsLink}>
-                          Voir la fiche ↗
-                        </a>
-                      ) : (
-                        <span style={{ color: "#b3a290" }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ ...styles.td, whiteSpace: "nowrap" }}>
-                      <button style={styles.iconBtn} onClick={() => openEdit(b)} aria-label="Modifier">
-                        ✎
-                      </button>
-                      {confirmDeleteId === b.id ? (
-                        <>
-                          <button style={styles.iconBtnDanger} onClick={() => deleteBottle(b.id)}>
-                            Confirmer
-                          </button>
-                          <button style={styles.iconBtn} onClick={() => setConfirmDeleteId(null)}>
-                            Annuler
-                          </button>
-                        </>
-                      ) : (
-                        <button style={styles.iconBtn} onClick={() => setConfirmDeleteId(b.id)} aria-label="Supprimer">
-                          🗑
+      {loading ? (
+        <p style={{ padding: 24, color: "#8a7660", maxWidth: 1100, margin: "0 auto" }}>Chargement de la cave…</p>
+      ) : (
+        <>
+          {/* ---------- Vue tableau (desktop / tablette large) ---------- */}
+          <div style={styles.tableWrap} className="table-view">
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}></th>
+                  <th style={styles.th}>Bouteille</th>
+                  <th style={styles.th}>Appellation</th>
+                  <th style={styles.th}>Millésime</th>
+                  <th style={styles.th}>Région</th>
+                  <th style={{ ...styles.th, textAlign: "center" }}>Qté</th>
+                  <th style={{ ...styles.th, textAlign: "center" }}>Wine-Searcher</th>
+                  <th style={styles.th}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((b) => {
+                  const wsUrl = b.wineSearcherUrl || buildWineSearcherUrl(b);
+                  return (
+                    <tr key={b.id} style={styles.tr}>
+                      <td style={styles.td}>
+                        <span style={{ ...styles.seal, background: SEAL_COLOR[b.couleur] || "#999" }} title={b.couleur} />
+                      </td>
+                      <td style={{ ...styles.td, fontFamily: "'Fraunces', serif", fontWeight: 600, color: "#2b1a14" }}>
+                        {bottleLabel(b)}
+                      </td>
+                      <td style={styles.td}>{b.appellation || "—"}</td>
+                      <td style={styles.td}>{b.millesime || "—"}</td>
+                      <td style={styles.td}>{b.region || "—"}</td>
+                      <td style={{ ...styles.td, textAlign: "center" }}>{b.quantite}</td>
+                      <td style={{ ...styles.td, textAlign: "center" }}>
+                        {wsUrl ? (
+                          <a href={wsUrl} target="_blank" rel="noopener noreferrer" style={styles.wsLink}>
+                            Voir la fiche ↗
+                          </a>
+                        ) : (
+                          <span style={{ color: "#b3a290" }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ ...styles.td, whiteSpace: "nowrap" }}>
+                        <button style={styles.iconBtn} onClick={() => openEdit(b)} aria-label="Modifier">
+                          ✎
                         </button>
-                      )}
+                        {confirmDeleteId === b.id ? (
+                          <>
+                            <button style={styles.iconBtnDanger} onClick={() => deleteBottle(b.id)}>
+                              Confirmer
+                            </button>
+                            <button style={styles.iconBtn} onClick={() => setConfirmDeleteId(null)}>
+                              Annuler
+                            </button>
+                          </>
+                        ) : (
+                          <button style={styles.iconBtn} onClick={() => setConfirmDeleteId(b.id)} aria-label="Supprimer">
+                            🗑
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={8} style={{ ...styles.td, textAlign: "center", padding: "40px 0", color: "#9c8b7a" }}>
+                      Aucune bouteille ne correspond à ta recherche.
                     </td>
                   </tr>
-                );
-              })}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={8} style={{ ...styles.td, textAlign: "center", padding: "40px 0", color: "#9c8b7a" }}>
-                    Aucune bouteille ne correspond à ta recherche.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ---------- Vue cartes (mobile / portrait) ---------- */}
+          <div className="card-view" style={styles.cardList}>
+            {filtered.map((b) => {
+              const wsUrl = b.wineSearcherUrl || buildWineSearcherUrl(b);
+              return (
+                <div key={b.id} style={styles.bottleCard}>
+                  <div style={styles.bottleCardTop}>
+                    <span style={{ ...styles.seal, background: SEAL_COLOR[b.couleur] || "#999", flexShrink: 0 }} title={b.couleur} />
+                    <span style={styles.bottleCardName}>{bottleLabel(b)}</span>
+                    <span style={styles.qtyBadge}>×{b.quantite}</span>
+                  </div>
+                  <p style={styles.bottleCardMeta}>
+                    {[b.appellation, b.millesime, b.region].filter(Boolean).join(" · ") || "Détails non renseignés"}
+                  </p>
+                  <div style={styles.bottleCardActions}>
+                    {wsUrl && (
+                      <a href={wsUrl} target="_blank" rel="noopener noreferrer" style={styles.wsLink}>
+                        Voir la fiche ↗
+                      </a>
+                    )}
+                    <div style={{ flex: 1 }} />
+                    <button style={styles.iconBtn} onClick={() => openEdit(b)} aria-label="Modifier">
+                      ✎
+                    </button>
+                    {confirmDeleteId === b.id ? (
+                      <>
+                        <button style={styles.iconBtnDanger} onClick={() => deleteBottle(b.id)}>
+                          Confirmer
+                        </button>
+                        <button style={styles.iconBtn} onClick={() => setConfirmDeleteId(null)}>
+                          Annuler
+                        </button>
+                      </>
+                    ) : (
+                      <button style={styles.iconBtn} onClick={() => setConfirmDeleteId(b.id)} aria-label="Supprimer">
+                        🗑
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {filtered.length === 0 && (
+              <p style={{ textAlign: "center", padding: "30px 0", color: "#9c8b7a" }}>
+                Aucune bouteille ne correspond à ta recherche.
+              </p>
+            )}
+          </div>
+        </>
+      )}
 
       {(modal === "add" || modal === "edit") && (
         <div style={styles.overlay} onClick={closeModal}>
@@ -507,9 +562,8 @@ const styles = {
   select: { padding: "10px 14px", borderRadius: 999, border: "1px solid #d8c6a8", background: "#fffaf1", fontSize: 14, color: "#2b1a14" },
   btnPrimary: { background: "#6b1424", color: "#fdf3e4", border: "none", borderRadius: 999, padding: "11px 20px", fontWeight: 600, fontSize: 14, cursor: "pointer" },
   btnGhost: { background: "transparent", color: "#6b1424", border: "1.5px solid #6b1424", borderRadius: 999, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer" },
-  btnLock: { background: "#fffaf1", border: "1px solid #d8c6a8", borderRadius: 999, padding: "10px 14px", fontSize: 14, cursor: "pointer", lineHeight: 1 },
-  tableWrap: { maxWidth: 1100, margin: "0 auto", background: "#fffaf1", border: "1px solid #e4d5b8", borderRadius: 14, overflow: "hidden" },
-  table: { width: "100%", borderCollapse: "collapse", fontSize: 14 },
+  tableWrap: { maxWidth: 1100, margin: "0 auto", background: "#fffaf1", border: "1px solid #e4d5b8", borderRadius: 14, overflowX: "auto" },
+  table: { width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: 640 },
   th: { textAlign: "left", padding: "12px 14px", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "#8a7660", borderBottom: "1px solid #e4d5b8", background: "#f3e8d3" },
   tr: { borderBottom: "1px solid #efe3cc" },
   td: { padding: "12px 14px", color: "#4a3a2c", verticalAlign: "middle" },
@@ -525,6 +579,13 @@ const styles = {
   label: { flex: "1 1 180px", display: "flex", flexDirection: "column", gap: 6, fontSize: 12, color: "#6b5a49", fontWeight: 600 },
   input: { padding: "9px 12px", borderRadius: 8, border: "1px solid #d8c6a8", fontSize: 14, color: "#2b1a14", background: "#fff" },
   modalActions: { display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 6 },
+  cardList: { maxWidth: 1100, margin: "0 auto", flexDirection: "column", gap: 10 },
+  bottleCard: { background: "#fffaf1", border: "1px solid #e4d5b8", borderRadius: 14, padding: "14px 16px" },
+  bottleCardTop: { display: "flex", alignItems: "center", gap: 8 },
+  bottleCardName: { fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 15, color: "#2b1a14", flex: 1, minWidth: 0 },
+  qtyBadge: { fontSize: 12, fontWeight: 700, color: "#6b1424", background: "#f3e0d3", borderRadius: 999, padding: "2px 9px", flexShrink: 0 },
+  bottleCardMeta: { margin: "6px 0 10px", fontSize: 13, color: "#8a7660" },
+  bottleCardActions: { display: "flex", alignItems: "center", gap: 8, borderTop: "1px solid #efe3cc", paddingTop: 10 },
   photoDrop: { border: "2px dashed #d8c6a8", borderRadius: 12, padding: "36px 20px", textAlign: "center", cursor: "pointer", marginBottom: 8 },
   photoPreviewRow: { display: "flex", gap: 14, alignItems: "center", marginBottom: 16 },
   photoThumb: { width: 84, height: 84, objectFit: "cover", borderRadius: 10, border: "1px solid #e4d5b8" },
