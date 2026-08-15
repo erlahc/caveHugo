@@ -51,9 +51,10 @@ Netlify Function.
    connecte ton repo GitHub. Netlify détecte `netlify.toml` automatiquement (commande de
    build `npm run build`, dossier `dist`, functions dans `netlify/functions`).
 3. Avant le premier déploiement, va dans **Site configuration > Environment variables**
-   et ajoute trois variables :
+   et ajoute quatre variables :
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_APP_CODE` (le code à 4 chiffres qui ouvre l'appli — voir plus bas)
    - `ANTHROPIC_API_KEY` (ta clé API Anthropic, créée sur console.anthropic.com — reste
      secrète, jamais exposée au navigateur puisqu'elle n'est lue que par la function)
 4. Lance le déploiement (**Deploy site**). Ton appli est en ligne sur une URL du type
@@ -68,6 +69,26 @@ Même procédure que pour un site statique classique :
    d'utiliser "Netlify DNS", note les 4 serveurs de noms proposés.
 3. Chez ton registrar, remplace les serveurs DNS par ceux de Netlify.
 4. HTTPS se configure automatiquement une fois la propagation DNS terminée.
+
+## Code d'accès à 4 chiffres
+
+À l'ouverture, l'appli affiche un pavé numérique (`src/CodeGate.jsx`) : sans le bon code,
+le carnet de cave n'est pas affiché. Une fois le bon code saisi, il est mémorisé dans le
+navigateur (`localStorage`) — plus besoin de le retaper aux visites suivantes, jusqu'à ce
+qu'on clique le bouton 🔒 de la barre d'outils.
+
+- Le code se change via la variable `VITE_APP_CODE` (en local dans `.env`, sur Netlify
+  dans les variables d'environnement). Sans elle, le code est `1234`.
+- Après modification de la variable sur Netlify, il faut **redéployer** : la valeur est
+  injectée au moment du build.
+
+⚠️ **Ce que ce code protège (et ne protège pas).** C'est un verrou côté navigateur : il
+cache l'interface aux curieux qui tomberaient sur l'URL, ce qui est le but ici. Il n'est
+pas une vraie authentification — le code est présent dans le JavaScript envoyé au
+navigateur, et la base Supabase reste joignable directement avec la clé `anon` publique
+(cf. les policies dans `supabase-schema.sql`). Pour une protection réelle des données, il
+faudrait passer à l'auth Supabase (login email/mot de passe) et filtrer les policies sur
+`auth.uid()`.
 
 ## Notes
 

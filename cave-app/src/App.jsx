@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { supabase } from "./supabaseClient";
+import { lockApp } from "./CodeGate";
 
 const COULEURS = ["Rouge", "Blanc", "Rosé", "Effervescent"];
 const SEAL_COLOR = { Rouge: "#6b1424", Blanc: "#c8a84b", "Rosé": "#d98a8f", Effervescent: "#c9b878" };
@@ -294,6 +295,9 @@ export default function CaveApp() {
         <button style={styles.btnPrimary} onClick={openAdd}>
           + Ajouter une bouteille
         </button>
+        <button style={styles.btnLock} onClick={lockApp} title="Verrouiller la cave">
+          🔒
+        </button>
       </div>
 
       <div style={styles.tableWrap}>
@@ -503,6 +507,7 @@ const styles = {
   select: { padding: "10px 14px", borderRadius: 999, border: "1px solid #d8c6a8", background: "#fffaf1", fontSize: 14, color: "#2b1a14" },
   btnPrimary: { background: "#6b1424", color: "#fdf3e4", border: "none", borderRadius: 999, padding: "11px 20px", fontWeight: 600, fontSize: 14, cursor: "pointer" },
   btnGhost: { background: "transparent", color: "#6b1424", border: "1.5px solid #6b1424", borderRadius: 999, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer" },
+  btnLock: { background: "#fffaf1", border: "1px solid #d8c6a8", borderRadius: 999, padding: "10px 14px", fontSize: 14, cursor: "pointer", lineHeight: 1 },
   tableWrap: { maxWidth: 1100, margin: "0 auto", background: "#fffaf1", border: "1px solid #e4d5b8", borderRadius: 14, overflow: "hidden" },
   table: { width: "100%", borderCollapse: "collapse", fontSize: 14 },
   th: { textAlign: "left", padding: "12px 14px", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "#8a7660", borderBottom: "1px solid #e4d5b8", background: "#f3e8d3" },
